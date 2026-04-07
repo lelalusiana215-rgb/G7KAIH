@@ -459,12 +459,6 @@ export default function App() {
         </div>
       </div>
       <div className="text-center mb-8">
-        <img 
-          src="https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Tut_Wuri_Handayani.png" 
-          alt="Logo Tut Wuri Handayani" 
-          className="w-24 h-24 mx-auto mb-4 object-contain"
-          referrerPolicy="no-referrer"
-        />
         <h1 className="text-4xl font-bold text-purple-700 mb-2">SIMOCI3-G7KAIH</h1>
         <p className="text-xl text-gray-600">Mari Membangun Kebiasaan Baik Setiap Hari!</p>
       </div>
@@ -529,12 +523,6 @@ export default function App() {
           </button>
         )}
         <div className="text-center mb-6">
-          <img 
-            src="https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Tut_Wuri_Handayani.png" 
-            alt="Logo Tut Wuri Handayani" 
-            className="w-20 h-20 mx-auto mb-2 object-contain"
-            referrerPolicy="no-referrer"
-          />
           <h2 className="text-3xl font-bold text-purple-700">Form Isian Siswa</h2>
         </div>
         <form onSubmit={handleFormSubmit} className="space-y-6">
@@ -706,12 +694,6 @@ export default function App() {
       <div className="bg-white rounded-3xl shadow-2xl p-8">
         <button onClick={() => setCurrentPage('home')} className="mb-6 bg-gray-500 hover:bg-gray-600 text-white py-2 px-6 rounded-xl">← Kembali ke Beranda</button>
         <div className="text-center mb-6">
-          <img 
-            src="https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Tut_Wuri_Handayani.png" 
-            alt="Logo Tut Wuri Handayani" 
-            className="w-20 h-20 mx-auto mb-2 object-contain"
-            referrerPolicy="no-referrer"
-          />
           <h2 className="text-3xl font-bold text-blue-700">📊 Rekap Harian</h2>
         </div>
         
@@ -804,12 +786,6 @@ export default function App() {
       <div className="bg-white rounded-3xl shadow-2xl p-8">
         <button onClick={() => setCurrentPage('home')} className="mb-6 bg-gray-500 hover:bg-gray-600 text-white py-2 px-6 rounded-xl">← Kembali ke Beranda</button>
         <div className="text-center mb-6">
-          <img 
-            src="https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Tut_Wuri_Handayani.png" 
-            alt="Logo Tut Wuri Handayani" 
-            className="w-20 h-20 mx-auto mb-2 object-contain"
-            referrerPolicy="no-referrer"
-          />
           <h2 className="text-3xl font-bold text-yellow-700">📈 Rekap Bulanan</h2>
         </div>
         
@@ -995,12 +971,6 @@ export default function App() {
       <div className="bg-white rounded-3xl shadow-2xl p-8">
         <button onClick={() => setCurrentPage('home')} className="mb-6 bg-gray-500 hover:bg-gray-600 text-white py-2 px-6 rounded-xl print:hidden">← Kembali ke Beranda</button>
         <div className="text-center mb-6 print:hidden">
-          <img 
-            src="https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Tut_Wuri_Handayani.png" 
-            alt="Logo Tut Wuri Handayani" 
-            className="w-20 h-20 mx-auto mb-2 object-contain"
-            referrerPolicy="no-referrer"
-          />
           <h2 className="text-3xl font-bold text-purple-700">🏆 Rekap Semester</h2>
         </div>
         
@@ -1135,17 +1105,10 @@ export default function App() {
               <div id="printable-report" className="bg-white p-4 text-black font-serif">
                 {/* Kop Sekolah */}
                 <div className="flex items-center border-b-4 border-double border-black pb-4 mb-6">
-                  <img 
-                    src="https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Tut_Wuri_Handayani.png" 
-                    alt="Logo Tut Wuri Handayani" 
-                    className="w-16 h-16 mr-4 object-contain"
-                    referrerPolicy="no-referrer"
-                  />
                   <div className="flex-1 text-center">
                     <h1 className="text-2xl font-bold uppercase">{schoolName}</h1>
                     <p className="text-sm italic">{schoolAddress}</p>
                   </div>
-                  <div className="w-16 h-16 ml-4"></div> {/* Spacer to keep text centered */}
                 </div>
 
                 <h2 className="text-xl font-bold text-center underline mb-6 uppercase">LAPORAN REKAPITULASI SEMESTER</h2>
