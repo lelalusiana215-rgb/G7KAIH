@@ -1,11 +1,115 @@
-import React, { useState, useEffect } from 'react';
-import { collection, addDoc, deleteDoc, doc, onSnapshot, query, where, getDoc, setDoc, getDocs } from 'firebase/firestore';
+import React, { useState, useEffect, Component } from 'react';
+import { collection, addDoc, deleteDoc, doc, onSnapshot, query, where, getDoc, setDoc, getDocs, getDocFromServer } from 'firebase/firestore';
 import { db, auth, signInWithGoogle } from './firebase';
 import { Student, HabitRecord } from './types';
 import * as XLSX from 'xlsx';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: any;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-red-50 flex items-center justify-center p-4">
+          <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-lg w-full text-center border-2 border-red-100">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h1 className="text-2xl font-bold text-red-700 mb-4">Terjadi Kesalahan</h1>
+            <p className="text-gray-600 mb-6">Aplikasi mengalami kendala teknis. Silakan coba muat ulang halaman.</p>
+            <div className="bg-red-50 p-4 rounded-xl text-left text-xs font-mono text-red-800 mb-6 overflow-auto max-h-40">
+              {this.state.error?.toString()}
+            </div>
+            <button onClick={() => window.location.reload()} className="bg-red-500 hover:bg-red-600 text-white py-3 px-8 rounded-xl font-bold">
+              Muat Ulang Halaman
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
+  );
+}
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId: string | undefined;
+    email: string | null | undefined;
+    emailVerified: boolean | undefined;
+    isAnonymous: boolean | undefined;
+    tenantId: string | null | undefined;
+    providerInfo: {
+      providerId: string;
+      displayName: string | null;
+      email: string | null;
+      photoUrl: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData.map(provider => ({
+        providerId: provider.providerId,
+        displayName: provider.displayName,
+        email: provider.email,
+        photoUrl: provider.photoURL
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+function AppContent() {
   const [currentPage, setCurrentPage] = useState('home');
   const [isSharedMode, setIsSharedMode] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false); // Teacher password auth
@@ -17,7 +121,7 @@ export default function App() {
   const [checkingApproval, setCheckingApproval] = useState(true);
   const [approvedSchoolsList, setApprovedSchoolsList] = useState<any[]>([]);
   const [teachersList, setTeachersList] = useState<any[]>([]);
-  const OWNER_EMAIL = 'lelalusiana215@gmail.com';
+  const OWNER_EMAIL = 'lelalusiana215@gmail.com'.toLowerCase();
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -54,6 +158,18 @@ export default function App() {
   const [selectedReportClass, setSelectedReportClass] = useState('');
 
   useEffect(() => {
+    const testConnection = async () => {
+      try {
+        await getDocFromServer(doc(db, 'test', 'connection'));
+      } catch (error: any) {
+        if (error.message?.includes('the client is offline')) {
+          console.error("Firebase configuration error: client is offline.");
+          displayToast("Kesalahan konfigurasi Firebase. Hubungi admin.", true);
+        }
+      }
+    };
+    testConnection();
+    
     // Check if URL has ?view=form
     const params = new URLSearchParams(window.location.search);
     const isShared = params.get('view') === 'form';
@@ -67,57 +183,61 @@ export default function App() {
     }
 
     const unsubscribeAuth = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        setIsFirebaseAuthenticated(true);
-        const userEmail = user.email || '';
-        
-        if (isShared) {
-          setCheckingApproval(false);
-        } else {
-          if (userEmail === OWNER_EMAIL) {
-            setIsOwner(true);
-            setIsSchoolAdmin(true);
-            setIsApproved(true);
-            setSchoolEmail(userEmail);
+      try {
+        if (user) {
+          setIsFirebaseAuthenticated(true);
+          const userEmail = (user.email || '').toLowerCase();
+          
+          if (isShared) {
             setCheckingApproval(false);
           } else {
-            setIsOwner(false);
-            try {
+            if (userEmail === OWNER_EMAIL) {
+              setIsOwner(true);
+              setIsSchoolAdmin(true);
+              setIsApproved(true);
+              setSchoolEmail(userEmail);
+              setCheckingApproval(false);
+            } else {
+              setIsOwner(false);
               const docRef = doc(db, 'approvedSchools', userEmail);
-              const docSnap = await getDoc(docRef);
-              if (docSnap.exists()) {
-                setIsSchoolAdmin(true);
-                setIsApproved(true);
-                setSchoolEmail(userEmail);
-              } else {
-                const teacherDocRef = doc(db, 'teachers', userEmail);
-                const teacherDocSnap = await getDoc(teacherDocRef);
-                if (teacherDocSnap.exists()) {
-                  setIsSchoolAdmin(false);
+              try {
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                  setIsSchoolAdmin(true);
                   setIsApproved(true);
-                  setSchoolEmail(teacherDocSnap.data().schoolEmail);
+                  setSchoolEmail(userEmail);
                 } else {
-                  setIsSchoolAdmin(false);
-                  setIsApproved(false);
+                  const teacherDocRef = doc(db, 'teachers', userEmail);
+                  const teacherDocSnap = await getDoc(teacherDocRef);
+                  if (teacherDocSnap.exists()) {
+                    setIsSchoolAdmin(false);
+                    setIsApproved(true);
+                    setSchoolEmail(teacherDocSnap.data().schoolEmail);
+                  } else {
+                    setIsSchoolAdmin(false);
+                    setIsApproved(false);
+                  }
                 }
+              } catch (error) {
+                handleFirestoreError(error, OperationType.GET, 'approvedSchools/' + userEmail);
               }
-            } catch (error) {
-              console.error("Error checking approval:", error);
-              setIsSchoolAdmin(false);
-              setIsApproved(false);
+              setCheckingApproval(false);
             }
-            setCheckingApproval(false);
           }
+        } else {
+          setIsFirebaseAuthenticated(false);
+          setIsOwner(false);
+          setIsSchoolAdmin(false);
+          setIsApproved(false);
+          if (!isShared) {
+            setSchoolEmail('');
+          }
+          setCheckingApproval(false);
         }
-      } else {
-        setIsFirebaseAuthenticated(false);
-        setIsOwner(false);
-        setIsSchoolAdmin(false);
-        setIsApproved(false);
-        if (!isShared) {
-          setSchoolEmail('');
-        }
+      } catch (error) {
+        console.error("Auth state change error:", error);
         setCheckingApproval(false);
+        displayToast("Gagal memverifikasi akses. Silakan coba muat ulang halaman.", true);
       }
     });
 
@@ -132,7 +252,7 @@ export default function App() {
         const studentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student));
         setStudents(studentsData);
       }, (error) => {
-        console.error("Error fetching students:", error);
+        handleFirestoreError(error, OperationType.GET, 'students');
       });
 
       const habitsRef = collection(db, 'habitRecords');
@@ -141,7 +261,7 @@ export default function App() {
         const habitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as HabitRecord));
         setHabitRecords(habitsData);
       }, (error) => {
-        console.error("Error fetching habit records:", error);
+        handleFirestoreError(error, OperationType.GET, 'habitRecords');
       });
 
       return () => {
@@ -156,7 +276,7 @@ export default function App() {
       const unsubscribe = onSnapshot(collection(db, 'approvedSchools'), (snapshot) => {
         setApprovedSchoolsList(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       }, (error) => {
-        console.error("Error fetching approved schools:", error);
+        handleFirestoreError(error, OperationType.GET, 'approvedSchools');
       });
       return () => unsubscribe();
     }
@@ -168,7 +288,7 @@ export default function App() {
       const unsubscribe = onSnapshot(qTeachers, (snapshot) => {
         setTeachersList(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       }, (error) => {
-        console.error("Error fetching teachers:", error);
+        handleFirestoreError(error, OperationType.GET, 'teachers');
       });
       return () => unsubscribe();
     }
@@ -1285,9 +1405,17 @@ export default function App() {
 
   if (checkingApproval && !isSharedMode) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center p-4 font-sans">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center p-4 font-sans text-white">
         <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center">
-          <p className="text-xl text-gray-600">Memeriksa akses...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-500 mx-auto mb-6"></div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Memeriksa Akses...</h2>
+          <p className="text-gray-600 mb-6">Mohon tunggu sebentar sementara kami memverifikasi akun Anda.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-6 rounded-xl font-bold transition-colors"
+          >
+            Muat Ulang Halaman
+          </button>
         </div>
       </div>
     );
