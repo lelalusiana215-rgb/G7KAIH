@@ -24,6 +24,15 @@ export default function App() {
   const [passwordTarget, setPasswordTarget] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  // Report Configuration
+  const [schoolName, setSchoolName] = useState('NAMA SEKOLAH ANDA');
+  const [schoolAddress, setSchoolAddress] = useState('Alamat Lengkap Sekolah Anda');
+  const [principalName, setPrincipalName] = useState('Nama Kepala Sekolah, S.Pd.');
+  const [principalNip, setPrincipalNip] = useState('');
+  const [teacherName, setTeacherName] = useState('Nama Guru Kelas, S.Pd.');
+  const [teacherNip, setTeacherNip] = useState('');
+  const [showReportPreview, setShowReportPreview] = useState(false);
+
   const [students, setStudents] = useState<Student[]>([]);
   const [habitRecords, setHabitRecords] = useState<HabitRecord[]>([]);
 
@@ -450,6 +459,12 @@ export default function App() {
         </div>
       </div>
       <div className="text-center mb-8">
+        <img 
+          src="https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Tut_Wuri_Handayani.png" 
+          alt="Logo Tut Wuri Handayani" 
+          className="w-24 h-24 mx-auto mb-4 object-contain"
+          referrerPolicy="no-referrer"
+        />
         <h1 className="text-4xl font-bold text-purple-700 mb-2">SIMOCI3-G7KAIH</h1>
         <p className="text-xl text-gray-600">Mari Membangun Kebiasaan Baik Setiap Hari!</p>
       </div>
@@ -513,7 +528,15 @@ export default function App() {
             ← Kembali ke Beranda
           </button>
         )}
-        <h2 className="text-3xl font-bold text-center text-purple-700 mb-6">Form Isian Siswa</h2>
+        <div className="text-center mb-6">
+          <img 
+            src="https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Tut_Wuri_Handayani.png" 
+            alt="Logo Tut Wuri Handayani" 
+            className="w-20 h-20 mx-auto mb-2 object-contain"
+            referrerPolicy="no-referrer"
+          />
+          <h2 className="text-3xl font-bold text-purple-700">Form Isian Siswa</h2>
+        </div>
         <form onSubmit={handleFormSubmit} className="space-y-6">
           <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-6 rounded-2xl">
             <h3 className="text-xl font-bold mb-4">Data Siswa</h3>
@@ -682,7 +705,15 @@ export default function App() {
     return (
       <div className="bg-white rounded-3xl shadow-2xl p-8">
         <button onClick={() => setCurrentPage('home')} className="mb-6 bg-gray-500 hover:bg-gray-600 text-white py-2 px-6 rounded-xl">← Kembali ke Beranda</button>
-        <h2 className="text-3xl font-bold text-center text-blue-700 mb-6">📊 Rekap Harian</h2>
+        <div className="text-center mb-6">
+          <img 
+            src="https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Tut_Wuri_Handayani.png" 
+            alt="Logo Tut Wuri Handayani" 
+            className="w-20 h-20 mx-auto mb-2 object-contain"
+            referrerPolicy="no-referrer"
+          />
+          <h2 className="text-3xl font-bold text-blue-700">📊 Rekap Harian</h2>
+        </div>
         
         <div className="flex justify-center mb-6">
           <select 
@@ -772,7 +803,15 @@ export default function App() {
     return (
       <div className="bg-white rounded-3xl shadow-2xl p-8">
         <button onClick={() => setCurrentPage('home')} className="mb-6 bg-gray-500 hover:bg-gray-600 text-white py-2 px-6 rounded-xl">← Kembali ke Beranda</button>
-        <h2 className="text-3xl font-bold text-center text-yellow-700 mb-6">📈 Rekap Bulanan</h2>
+        <div className="text-center mb-6">
+          <img 
+            src="https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Tut_Wuri_Handayani.png" 
+            alt="Logo Tut Wuri Handayani" 
+            className="w-20 h-20 mx-auto mb-2 object-contain"
+            referrerPolicy="no-referrer"
+          />
+          <h2 className="text-3xl font-bold text-yellow-700">📈 Rekap Bulanan</h2>
+        </div>
         
         <div className="flex flex-wrap gap-4 mb-6 justify-center">
           <select 
@@ -882,12 +921,146 @@ export default function App() {
       };
     }).filter(Boolean);
 
+    // Calculate monthly data for chart
+    const semesterMonths = selectedSemester === 1 ? [7, 8, 9, 10, 11, 12] : [1, 2, 3, 4, 5, 6];
+    const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    
+    const chartData = semesterMonths.map(month => {
+      const monthRecords = filteredRecords.filter(r => new Date(r.date).getMonth() + 1 === month);
+      const avg = monthRecords.length > 0 
+        ? Math.round(monthRecords.reduce((sum, r) => sum + r.total_score, 0) / monthRecords.length)
+        : 0;
+      return {
+        name: monthNames[month - 1],
+        skor: avg
+      };
+    });
+
+    const handlePrint = () => {
+      window.print();
+    };
+
+    const handleExportWord = () => {
+      const elementId = 'printable-report';
+      const filename = `Rekap_Semester_${selectedReportClass || 'Semua'}_${selectedSemesterYear}_S${selectedSemester}`;
+      const preHtml = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export HTML To Doc</title><style>table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid black; padding: 8px; text-align: left; } .text-center { text-align: center; } .font-bold { font-weight: bold; } .kop { text-align: center; border-bottom: 3px double black; padding-bottom: 10px; margin-bottom: 20px; } .kop h1 { margin: 0; font-size: 20pt; } .kop p { margin: 0; font-size: 10pt; } .signature-table { width: 100%; margin-top: 50px; border: none !important; } .signature-table td { border: none !important; }</style></head><body>";
+      const postHtml = "</body></html>";
+      const content = document.getElementById(elementId)?.innerHTML || '';
+      const html = preHtml + content + postHtml;
+
+      const blob = new Blob(['\ufeff', html], {
+        type: 'application/msword'
+      });
+      
+      const url = URL.createObjectURL(blob);
+      const downloadLink = document.createElement("a");
+      document.body.appendChild(downloadLink);
+      downloadLink.href = url;
+      downloadLink.download = filename + '.doc';
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(url);
+    };
+
+    const downloadChart = () => {
+      const svg = document.querySelector('.semester-chart svg');
+      if (!svg) return;
+
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      const svgSize = svg.getBoundingClientRect();
+      canvas.width = svgSize.width * 2; // Higher resolution
+      canvas.height = svgSize.height * 2;
+      
+      img.onload = () => {
+        if (ctx) {
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const pngUrl = canvas.toDataURL('image/png');
+          const downloadLink = document.createElement('a');
+          downloadLink.href = pngUrl;
+          downloadLink.download = `Grafik_Kemajuan_${selectedReportClass || 'Semua'}_S${selectedSemester}.png`;
+          downloadLink.click();
+        }
+      };
+      
+      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+    };
+
     return (
       <div className="bg-white rounded-3xl shadow-2xl p-8">
-        <button onClick={() => setCurrentPage('home')} className="mb-6 bg-gray-500 hover:bg-gray-600 text-white py-2 px-6 rounded-xl">← Kembali ke Beranda</button>
-        <h2 className="text-3xl font-bold text-center text-purple-700 mb-6">🏆 Rekap Semester</h2>
+        <button onClick={() => setCurrentPage('home')} className="mb-6 bg-gray-500 hover:bg-gray-600 text-white py-2 px-6 rounded-xl print:hidden">← Kembali ke Beranda</button>
+        <div className="text-center mb-6 print:hidden">
+          <img 
+            src="https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Tut_Wuri_Handayani.png" 
+            alt="Logo Tut Wuri Handayani" 
+            className="w-20 h-20 mx-auto mb-2 object-contain"
+            referrerPolicy="no-referrer"
+          />
+          <h2 className="text-3xl font-bold text-purple-700">🏆 Rekap Semester</h2>
+        </div>
         
-        <div className="flex flex-wrap gap-4 mb-6 justify-center">
+        <div className="bg-purple-50 p-6 rounded-2xl mb-8 border-2 border-purple-100 print:hidden">
+          <h3 className="text-xl font-bold mb-4 text-purple-800">⚙️ Pengaturan Laporan</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-bold mb-1">Nama Sekolah:</label>
+              <input type="text" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-1">Alamat Sekolah:</label>
+              <input type="text" value={schoolAddress} onChange={(e) => setSchoolAddress(e.target.value)} className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-1">Nama Kepala Sekolah:</label>
+              <input type="text" value={principalName} onChange={(e) => setPrincipalName(e.target.value)} className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-1">NIP Kepala Sekolah (Opsional):</label>
+              <input type="text" value={principalNip} onChange={(e) => setPrincipalNip(e.target.value)} className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Contoh: 19800101 200501 1 001" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-1">Nama Guru Kelas:</label>
+              <input type="text" value={teacherName} onChange={(e) => setTeacherName(e.target.value)} className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-1">NIP Guru Kelas (Opsional):</label>
+              <input type="text" value={teacherNip} onChange={(e) => setTeacherNip(e.target.value)} className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Contoh: 19850202 201001 2 002" />
+            </div>
+          </div>
+          <div className="mt-6 flex flex-wrap gap-4 justify-center">
+            <button onClick={() => setShowReportPreview(true)} className="bg-purple-600 hover:bg-purple-700 text-white py-3 px-8 rounded-xl font-bold shadow-lg flex items-center gap-2">
+              👁️ Preview Laporan
+            </button>
+          </div>
+        </div>
+
+        <div className="mb-8 bg-white p-6 rounded-2xl border-2 border-purple-100 print:hidden">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold text-purple-800">📈 Grafik Kemajuan Semester</h3>
+            <button onClick={downloadChart} className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg text-sm font-bold flex items-center gap-2">
+              📥 Download Grafik
+            </button>
+          </div>
+          <div className="h-[300px] w-full semester-chart">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis domain={[0, 100]} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="skor" name="Rata-rata Skor (%)" fill="#9333ea" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-4 mb-6 justify-center print:hidden">
           <select 
             value={selectedReportClass} 
             onChange={(e) => setSelectedReportClass(e.target.value)}
@@ -944,6 +1117,90 @@ export default function App() {
             </tbody>
           </table>
         </div>
+
+        {showReportPreview && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl max-w-4xl w-full p-8 shadow-2xl relative my-8">
+              <button onClick={() => setShowReportPreview(false)} className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl print:hidden">✕</button>
+              
+              <div className="flex gap-4 mb-6 print:hidden">
+                <button onClick={handlePrint} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2">
+                  🖨️ Cetak Laporan
+                </button>
+                <button onClick={handleExportWord} className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2">
+                  📄 Simpan Word (.doc)
+                </button>
+              </div>
+
+              <div id="printable-report" className="bg-white p-4 text-black font-serif">
+                {/* Kop Sekolah */}
+                <div className="flex items-center border-b-4 border-double border-black pb-4 mb-6">
+                  <img 
+                    src="https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Tut_Wuri_Handayani.png" 
+                    alt="Logo Tut Wuri Handayani" 
+                    className="w-16 h-16 mr-4 object-contain"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="flex-1 text-center">
+                    <h1 className="text-2xl font-bold uppercase">{schoolName}</h1>
+                    <p className="text-sm italic">{schoolAddress}</p>
+                  </div>
+                  <div className="w-16 h-16 ml-4"></div> {/* Spacer to keep text centered */}
+                </div>
+
+                <h2 className="text-xl font-bold text-center underline mb-6 uppercase">LAPORAN REKAPITULASI SEMESTER</h2>
+                
+                <div className="mb-4 grid grid-cols-2 text-sm">
+                  <div>
+                    <p><b>Kelas:</b> {selectedReportClass || 'Semua Kelas'}</p>
+                    <p><b>Semester:</b> {selectedSemester}</p>
+                  </div>
+                  <div className="text-right">
+                    <p><b>Tahun:</b> {selectedSemesterYear}</p>
+                    <p><b>Tanggal Cetak:</b> {new Date().toLocaleDateString('id-ID')}</p>
+                  </div>
+                </div>
+
+                <table className="w-full border-collapse border border-black text-sm">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border border-black p-2 text-center w-10">No</th>
+                      <th className="border border-black p-2">Nama Siswa</th>
+                      <th className="border border-black p-2 text-center">Kelas</th>
+                      <th className="border border-black p-2 text-center">Skor (%)</th>
+                      <th className="border border-black p-2">Kategori</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {studentAverages.map((student: any, index: number) => (
+                      <tr key={student.id}>
+                        <td className="border border-black p-2 text-center">{index + 1}</td>
+                        <td className="border border-black p-2">{student.student_name}</td>
+                        <td className="border border-black p-2 text-center">{student.class}</td>
+                        <td className="border border-black p-2 text-center font-bold">{student.averageScore}%</td>
+                        <td className="border border-black p-2">{student.category}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {/* Tanda Tangan */}
+                <div className="mt-12 grid grid-cols-2 text-center text-sm">
+                  <div>
+                    <p className="mb-20">Mengetahui,<br />Kepala Sekolah</p>
+                    <p className="font-bold underline">{principalName}</p>
+                    {principalNip && <p>NIP. {principalNip}</p>}
+                  </div>
+                  <div>
+                    <p className="mb-20">{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}<br />Guru Kelas</p>
+                    <p className="font-bold underline">{teacherName}</p>
+                    {teacherNip && <p>NIP. {teacherNip}</p>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
