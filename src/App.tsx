@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc, deleteDoc, doc, onSnapshot, query, where, getDoc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, onSnapshot, query, where, getDoc, setDoc, getDocs } from 'firebase/firestore';
 import { db, auth, signInWithGoogle } from './firebase';
 import { Student, HabitRecord } from './types';
 import * as XLSX from 'xlsx';
@@ -383,13 +383,48 @@ export default function App() {
     }
   };
 
-  const handleDeleteStudent = async (id: string) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus siswa ini?')) {
+  const handleDeleteStudent = async (student: Student) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus siswa "${student.student_name}"? Data rekap harian siswa ini tidak akan terhapus secara otomatis, namun siswa tidak akan muncul lagi di daftar isian.`)) {
       try {
-        await deleteDoc(doc(db, 'students', id));
+        await deleteDoc(doc(db, 'students', student.id));
         displayToast('✅ Siswa berhasil dihapus!');
       } catch (error) {
         displayToast('Gagal menghapus siswa.', true);
+      }
+    }
+  };
+
+  const handleDeleteAllStudentData = async (student: Student) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus SELURUH data rekap harian untuk "${student.student_name}"? Tindakan ini tidak dapat dibatalkan.`)) {
+      try {
+        const q = query(
+          collection(db, 'habitRecords'),
+          where('schoolEmail', '==', schoolEmail),
+          where('student_name', '==', student.student_name),
+          where('class', '==', student.class)
+        );
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) {
+          displayToast('Siswa ini belum memiliki data rekap.', true);
+          return;
+        }
+        
+        const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+        await Promise.all(deletePromises);
+        displayToast(`✅ Seluruh data rekap ${student.student_name} berhasil dihapus!`);
+      } catch (error) {
+        displayToast('Gagal menghapus data rekap.', true);
+      }
+    }
+  };
+
+  const handleDeleteHabitRecord = async (id: string) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus data rekap ini?')) {
+      try {
+        await deleteDoc(doc(db, 'habitRecords', id));
+        displayToast('✅ Data rekap berhasil dihapus!');
+      } catch (error) {
+        displayToast('Gagal menghapus data rekap.', true);
       }
     }
   };
@@ -672,7 +707,10 @@ export default function App() {
                         <p className="font-bold">{student.student_name}</p>
                         <p className="text-sm text-gray-500">{student.class}</p>
                       </div>
-                      <button onClick={() => handleDeleteStudent(student.id)} className="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-xl text-sm font-bold">🗑️ Hapus</button>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleDeleteAllStudentData(student)} className="bg-orange-100 hover:bg-orange-200 text-orange-700 py-2 px-4 rounded-xl text-sm font-bold" title="Hapus Semua Rekap">🧹 Hapus Data</button>
+                        <button onClick={() => handleDeleteStudent(student)} className="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-xl text-sm font-bold">🗑️ Hapus Siswa</button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -717,6 +755,7 @@ export default function App() {
                 <th className="p-3 border">Tanggal</th>
                 <th className="p-3 border">Skor %</th>
                 <th className="p-3 border">Kategori</th>
+                <th className="p-3 border">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -727,6 +766,11 @@ export default function App() {
                   <td className="p-3 border text-center">{record.date}</td>
                   <td className="p-3 border text-center font-bold">{record.total_score}%</td>
                   <td className="p-3 border text-center">{record.category}</td>
+                  <td className="p-3 border text-center">
+                    <button onClick={() => handleDeleteHabitRecord(record.id)} className="bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-lg transition-colors" title="Hapus Data">
+                      🗑️
+                    </button>
+                  </td>
                 </tr>
               ))}
               {filteredRecords.length === 0 && (
