@@ -10,8 +10,10 @@ export const googleProvider = new GoogleAuthProvider();
 export const githubProvider = new GithubAuthProvider();
 
 export const signInWithGoogle = async () => {
+  console.log("Starting Google Sign-In...");
   try {
-    await signInWithPopup(auth, googleProvider);
+    const result = await signInWithPopup(auth, googleProvider);
+    console.log("Google Sign-In success:", result.user.email);
   } catch (error: any) {
     console.error("Error signing in with Google:", error);
     if (error.code === 'auth/unauthorized-domain') {
@@ -23,8 +25,10 @@ export const signInWithGoogle = async () => {
 };
 
 export const signInWithGithub = async () => {
+  console.log("Starting GitHub Sign-In...");
   try {
-    await signInWithPopup(auth, githubProvider);
+    const result = await signInWithPopup(auth, githubProvider);
+    console.log("GitHub Sign-In success:", result.user.email);
   } catch (error: any) {
     console.error("Error signing in with GitHub:", error);
     if (error.code === 'auth/unauthorized-domain') {

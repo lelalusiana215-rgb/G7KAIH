@@ -1,4 +1,5 @@
-import React, { useState, useEffect, Component } from 'react';
+import * as React from 'react';
+const { useState, useEffect } = React;
 import { collection, addDoc, deleteDoc, doc, onSnapshot, query, where, getDoc, setDoc, getDocs, getDocFromServer } from 'firebase/firestore';
 import { db, auth, signInWithGoogle, signInWithGithub } from './firebase';
 import { Student, HabitRecord } from './types';
@@ -14,10 +15,17 @@ interface ErrorBoundaryState {
   error: any;
 }
 
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  state: ErrorBoundaryState = {
+    hasError: false,
+    error: null
+  };
+
+  props: ErrorBoundaryProps;
+
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.props = props;
   }
 
   static getDerivedStateFromError(error: any) {
@@ -30,14 +38,35 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
   render() {
     if (this.state.hasError) {
+      let errorMessage = this.state.error?.toString();
+      let errorDetail = null;
+      
+      try {
+        if (errorMessage && errorMessage.startsWith('Error: {')) {
+          const jsonStr = errorMessage.replace('Error: ', '');
+          errorDetail = JSON.parse(jsonStr);
+          errorMessage = errorDetail.error || errorMessage;
+        } else if (errorMessage && errorMessage.startsWith('{')) {
+          errorDetail = JSON.parse(errorMessage);
+          errorMessage = errorDetail.error || errorMessage;
+        }
+      } catch (e) {
+        // Not JSON, keep original
+      }
+
       return (
         <div className="min-h-screen bg-red-50 flex items-center justify-center p-4">
           <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-lg w-full text-center border-2 border-red-100">
             <div className="text-6xl mb-4">⚠️</div>
             <h1 className="text-2xl font-bold text-red-700 mb-4">Terjadi Kesalahan</h1>
             <p className="text-gray-600 mb-6">Aplikasi mengalami kendala teknis. Silakan coba muat ulang halaman.</p>
-            <div className="bg-red-50 p-4 rounded-xl text-left text-xs font-mono text-red-800 mb-6 overflow-auto max-h-40">
-              {this.state.error?.toString()}
+            <div className="bg-red-50 p-4 rounded-xl text-left text-xs font-mono text-red-800 mb-6 overflow-auto max-h-60">
+              <p className="font-bold mb-2">{errorMessage}</p>
+              {errorDetail && (
+                <pre className="whitespace-pre-wrap">
+                  {JSON.stringify(errorDetail, null, 2)}
+                </pre>
+              )}
             </div>
             <button onClick={() => window.location.reload()} className="bg-red-500 hover:bg-red-600 text-white py-3 px-8 rounded-xl font-bold">
               Muat Ulang Halaman
@@ -128,6 +157,27 @@ function AppContent() {
   const [passwordTarget, setPasswordTarget] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  // Debug State
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const [showDebug, setShowDebug] = useState(false);
+  const [clickCount, setClickCount] = useState(0);
+
+  const addLog = (msg: string) => {
+    const time = new Date().toLocaleTimeString();
+    setDebugLogs(prev => [...prev.slice(-49), `[${time}] ${msg}`]);
+    console.log(`[AppLog] ${msg}`);
+  };
+
+  const handleTitleClick = () => {
+    setClickCount(prev => {
+      if (prev + 1 >= 5) {
+        setShowDebug(!showDebug);
+        return 0;
+      }
+      return prev + 1;
+    });
+  };
+
   // Report Configuration
   const [schoolName, setSchoolName] = useState('NAMA SEKOLAH ANDA');
   const [schoolAddress, setSchoolAddress] = useState('Alamat Lengkap Sekolah Anda');
@@ -159,12 +209,16 @@ function AppContent() {
 
   useEffect(() => {
     const testConnection = async () => {
+      addLog("Testing Firebase connection...");
       try {
         await getDocFromServer(doc(db, 'test', 'connection'));
+        addLog("Firebase connection test complete (permission denied is expected if not exists)");
       } catch (error: any) {
         if (error.message?.includes('the client is offline')) {
-          console.error("Firebase configuration error: client is offline.");
+          addLog("CRITICAL: Firebase client is offline!");
           displayToast("Kesalahan konfigurasi Firebase. Hubungi admin.", true);
+        } else {
+          addLog(`Firebase connection test result: ${error.message}`);
         }
       }
     };
@@ -173,25 +227,31 @@ function AppContent() {
     // Check if URL has ?view=form
     const params = new URLSearchParams(window.location.search);
     const isShared = params.get('view') === 'form';
+    addLog(`Initializing app. Shared mode: ${isShared}`);
+    
     if (isShared) {
       setIsSharedMode(true);
       setCurrentPage('form');
       const schoolParam = params.get('school');
       if (schoolParam) {
+        addLog(`School email from URL: ${schoolParam}`);
         setSchoolEmail(schoolParam);
       }
     }
 
     const unsubscribeAuth = auth.onAuthStateChanged(async (user) => {
+      addLog(`Auth state changed: ${user ? user.email : "No user"}`);
       try {
         if (user) {
           setIsFirebaseAuthenticated(true);
           const userEmail = (user.email || '').toLowerCase();
           
           if (isShared) {
+            addLog("Shared mode: skipping approval check");
             setCheckingApproval(false);
           } else {
             if (userEmail === OWNER_EMAIL) {
+              addLog("Owner detected");
               setIsOwner(true);
               setIsSchoolAdmin(true);
               setIsApproved(true);
@@ -199,32 +259,39 @@ function AppContent() {
               setCheckingApproval(false);
             } else {
               setIsOwner(false);
+              addLog(`Checking approval for: ${userEmail}`);
               const docRef = doc(db, 'approvedSchools', userEmail);
               try {
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
+                  addLog("User approved as school admin");
                   setIsSchoolAdmin(true);
                   setIsApproved(true);
                   setSchoolEmail(userEmail);
                 } else {
+                  addLog("Not school admin, checking teacher status");
                   const teacherDocRef = doc(db, 'teachers', userEmail);
                   const teacherDocSnap = await getDoc(teacherDocRef);
                   if (teacherDocSnap.exists()) {
+                    addLog("User approved as teacher");
                     setIsSchoolAdmin(false);
                     setIsApproved(true);
                     setSchoolEmail(teacherDocSnap.data().schoolEmail);
                   } else {
+                    addLog("User not found in approved lists");
                     setIsSchoolAdmin(false);
                     setIsApproved(false);
                   }
                 }
               } catch (error) {
+                addLog(`Error fetching approval docs: ${error instanceof Error ? error.message : String(error)}`);
                 handleFirestoreError(error, OperationType.GET, 'approvedSchools/' + userEmail);
               }
               setCheckingApproval(false);
             }
           }
         } else {
+          addLog("User not authenticated");
           setIsFirebaseAuthenticated(false);
           setIsOwner(false);
           setIsSchoolAdmin(false);
@@ -235,7 +302,7 @@ function AppContent() {
           setCheckingApproval(false);
         }
       } catch (error) {
-        console.error("Auth state change error:", error);
+        addLog(`Auth state change error: ${error instanceof Error ? error.message : String(error)}`);
         setCheckingApproval(false);
         displayToast("Gagal memverifikasi akses. Silakan coba muat ulang halaman.", true);
       }
@@ -614,7 +681,7 @@ function AppContent() {
         </div>
       </div>
       <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold text-purple-700 mb-2">SIMOCI3-G7KAIH</h1>
+        <h1 onClick={handleTitleClick} className="text-4xl font-bold text-purple-700 mb-2 cursor-pointer select-none">SIMO-G7KAIH</h1>
         <p className="text-xl text-gray-600">Mari Membangun Kebiasaan Baik Setiap Hari!</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1425,7 +1492,7 @@ function AppContent() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center p-4 font-sans">
         <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center">
-          <h1 className="text-4xl font-bold text-purple-700 mb-4">SIMOCI3-G7KAIH</h1>
+          <h1 className="text-4xl font-bold text-purple-700 mb-4">SIMO-G7KAIH</h1>
           <p className="text-xl text-gray-600 mb-8">Silakan masuk untuk melanjutkan</p>
           <button 
             onClick={signInWithGoogle}
@@ -1517,6 +1584,17 @@ function AppContent() {
       {showToast && (
         <div className={`fixed top-4 right-4 ${isErrorToast ? 'bg-red-500' : 'bg-green-500'} text-white py-4 px-6 rounded-xl shadow-2xl z-50`}>
           {toastMessage}
+        </div>
+      )}
+
+      {showDebug && (
+        <div className="fixed bottom-4 left-4 right-4 bg-black bg-opacity-90 text-green-400 p-4 rounded-2xl shadow-2xl z-[100] font-mono text-xs max-h-60 overflow-y-auto border-2 border-green-900">
+          <div className="flex justify-between items-center mb-2 border-b border-green-900 pb-2">
+            <span className="font-bold">DEBUG LOGS</span>
+            <button onClick={() => setShowDebug(false)} className="text-white hover:text-red-400">✕ Close</button>
+          </div>
+          {debugLogs.map((log, i) => <div key={i}>{log}</div>)}
+          {debugLogs.length === 0 && <div>No logs yet...</div>}
         </div>
       )}
     </div>
