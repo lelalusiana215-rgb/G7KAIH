@@ -61,6 +61,22 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.token.email == 'lelalusiana215@gmail.com';
     }
 
+    function getTeacherData() {
+      return get(/databases/$(database)/documents/teachers/$(request.auth.token.email)).data;
+    }
+
+    function isSchoolAdmin(schoolEmail) {
+      return isAuthenticated() && (request.auth.token.email == schoolEmail || isOwner());
+    }
+
+    function isTeacherOfSchool(schoolEmail) {
+      return isAuthenticated() && (getTeacherData().schoolEmail == schoolEmail);
+    }
+
+    function canAccessSchoolData(schoolEmail) {
+      return isSchoolAdmin(schoolEmail) || isTeacherOfSchool(schoolEmail) || isOwner();
+    }
+
     function hasRequiredFields(fields) {
       return request.resource.data.keys().hasAll(fields);
     }
@@ -78,7 +94,7 @@ service cloud.firestore {
     }
 
     match /teachers/{teacherEmail} {
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated() && (request.auth.token.email == teacherEmail || isOwner() || isSchoolAdmin(resource.data.schoolEmail));
       allow create: if isAuthenticated() && hasRequiredFields(['email', 'name', 'schoolEmail', 'addedAt']) && isValidTeacher(request.resource.data) && (isOwner() || request.auth.token.email == request.resource.data.schoolEmail);
       allow update: if isAuthenticated() && hasRequiredFields(['email', 'name', 'schoolEmail', 'addedAt']) && isValidTeacher(request.resource.data) && (isOwner() || request.auth.token.email == request.resource.data.schoolEmail);
       allow delete: if isAuthenticated() && (isOwner() || request.auth.token.email == resource.data.schoolEmail);
@@ -100,17 +116,22 @@ service cloud.firestore {
     }
 
     match /students/{studentId} {
-      allow read: if true;
-      allow create: if isAuthenticated() && hasRequiredFields(['student_name', 'class', 'schoolEmail']) && isValidStudent(request.resource.data);
-      allow update: if isAuthenticated() && hasRequiredFields(['student_name', 'class', 'schoolEmail']) && isValidStudent(request.resource.data);
-      allow delete: if isAuthenticated();
+      // Allow read for students to fill form (via schoolEmail query) or for authorized staff
+      allow read: if (isAuthenticated() && canAccessSchoolData(resource.data.schoolEmail)) || (request.query.limit <= 500); 
+      allow create: if isAuthenticated() && canAccessSchoolData(request.resource.data.schoolEmail) && isValidStudent(request.resource.data);
+      allow update: if isAuthenticated() && canAccessSchoolData(resource.data.schoolEmail) && isValidStudent(request.resource.data);
+      allow delete: if isAuthenticated() && canAccessSchoolData(resource.data.schoolEmail);
     }
 
     match /habitRecords/{recordId} {
-      allow read: if true;
-      allow create: if hasRequiredFields(['student_name', 'class', 'date', 'total_score', 'category', 'schoolEmail']) && isValidHabitRecord(request.resource.data);
-      allow update: if isAuthenticated() && hasRequiredFields(['student_name', 'class', 'date', 'total_score', 'category', 'schoolEmail']) && isValidHabitRecord(request.resource.data);
-      allow delete: if isAuthenticated();
+      // Allow read for authorized staff
+      allow read: if isAuthenticated() && canAccessSchoolData(resource.data.schoolEmail);
+      // Allow create for anyone (students) but must have valid schoolEmail and schema
+      allow create: if hasRequiredFields(['student_name', 'class', 'date', 'total_score', 'category', 'schoolEmail']) && 
+                    isValidHabitRecord(request.resource.data) &&
+                    exists(/databases/$(database)/documents/approvedSchools/$(request.resource.data.schoolEmail));
+      allow update: if isAuthenticated() && canAccessSchoolData(resource.data.schoolEmail) && isValidHabitRecord(request.resource.data);
+      allow delete: if isAuthenticated() && canAccessSchoolData(resource.data.schoolEmail);
     }
   }
 }
