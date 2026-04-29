@@ -1,10 +1,32 @@
 import * as React from 'react';
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 import { collection, addDoc, deleteDoc, doc, onSnapshot, query, where, getDoc, setDoc, getDocs, getDocFromServer } from 'firebase/firestore';
 import { db, auth, signInWithGoogle, signInWithGithub } from './firebase';
 import { Student, HabitRecord } from './types';
 import * as XLSX from 'xlsx';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { 
+  CheckCircle, 
+  Download, 
+  Layout, 
+  Lock, 
+  Settings, 
+  CreditCard, 
+  ArrowRight, 
+  ChevronDown, 
+  ChevronUp, 
+  PlayCircle,
+  FileText,
+  Users,
+  ShieldCheck,
+  Zap,
+  BookOpen,
+  Mail,
+  Info,
+  LogOut,
+  ChevronLeft
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -139,10 +161,11 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 }
 
 function AppContent() {
-  const [currentPage, setCurrentPage] = useState('home');
+  const [currentPage, setCurrentPage] = useState('landing');
   const [isSharedMode, setIsSharedMode] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false); // Teacher password auth
   const [isFirebaseAuthenticated, setIsFirebaseAuthenticated] = useState(false); // Firebase auth
+  const [isDemo, setIsDemo] = useState(false);
   const [schoolEmail, setSchoolEmail] = useState('');
   const [isOwner, setIsOwner] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
@@ -207,6 +230,260 @@ function AppContent() {
   const [selectedSemesterYear, setSelectedSemesterYear] = useState(new Date().getFullYear());
   const [selectedReportClass, setSelectedReportClass] = useState('');
 
+  const handleEnterDemo = () => {
+    setIsDemo(true);
+    setIsFirebaseAuthenticated(true);
+    setIsApproved(true);
+    setIsSchoolAdmin(true);
+    setSchoolEmail('demo@sekolah.id');
+    setCurrentPage('home');
+    setStudents([
+      { id: '1', student_name: 'Budi Santoso', class: '4A', schoolEmail: 'demo@sekolah.id' },
+      { id: '2', student_name: 'Siti Aminah', class: '4A', schoolEmail: 'demo@sekolah.id' },
+      { id: '3', student_name: 'Andi Pratama', class: '4B', schoolEmail: 'demo@sekolah.id' }
+    ]);
+    displayToast("Mode Demo Aktif: Anda dapat mencoba fitur aplikasi dengan data contoh.");
+  };
+
+
+  const renderLandingPage = () => (
+    <div className="min-h-screen bg-gray-50 font-sans selection:bg-purple-200">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md z-50 border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">S</div>
+              <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-indigo-700">SIMO-G7KAIH</span>
+            </div>
+            <div className="hidden md:flex items-center gap-8">
+              <a href="#features" className="text-gray-600 hover:text-purple-700 font-medium transition-colors">Fitur</a>
+              <button 
+                onClick={() => setCurrentPage('login')}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-xl font-bold transition-all transform hover:scale-105 shadow-md flex items-center gap-2"
+              >
+                <Lock className="w-4 h-4" /> Member Login
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <header className="pt-32 pb-20 px-4 bg-gradient-to-b from-purple-50 to-white">
+        <div className="max-w-7xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <span className="inline-block px-4 py-1.5 bg-purple-100 text-purple-700 rounded-full text-sm font-bold mb-6">
+              #1 Aplikasi Monitoring Kebiasaan Siswa
+            </span>
+            <h1 className="text-5xl md:text-7xl font-extrabold text-gray-900 mb-6 tracking-tight leading-tight">
+              Bangun <span className="text-purple-600">Kebiasaan Baik</span> <br className="hidden md:block" /> Setiap Hari dengan SIMO
+            </h1>
+            <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
+              Solusi digital untuk memantau 7 Kebiasaan Anak Indonesia Hebat secara real-time. Akses terbatas khusus untuk sekolah terdaftar.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button 
+                onClick={() => setCurrentPage('login')}
+                className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white px-8 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all shadow-xl hover:shadow-purple-200 transform hover:-translate-y-1"
+              >
+                Member Login <ArrowRight className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={handleEnterDemo}
+                className="w-full sm:w-auto bg-white border-2 border-purple-200 hover:border-purple-600 text-purple-700 px-8 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all"
+              >
+                Coba Demo Gratis <PlayCircle className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="mt-12">
+              <a 
+                href="http://lynk.id/bugurulela" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-bold group"
+              >
+                <CreditCard className="w-5 h-5" />
+                Beli Lisensi Penuh di Lynk.id <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </a>
+            </div>
+          </motion.div>
+        </div>
+      </header>
+
+      {/* Stats/Social Proof */}
+      <section className="py-12 border-y border-gray-100 bg-white">
+        <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-center gap-12 md:gap-24 opacity-60 grayscale hover:grayscale-0 transition-all duration-700">
+           <div className="flex flex-col items-center">
+             <span className="text-3xl font-bold text-gray-900">100+</span>
+             <span className="text-gray-500 font-medium">Sekolah Aktif</span>
+           </div>
+           <div className="flex flex-col items-center">
+             <span className="text-3xl font-bold text-gray-900">5k+</span>
+             <span className="text-gray-500 font-medium">Siswa Terdaftar</span>
+           </div>
+           <div className="flex flex-col items-center">
+             <span className="text-3xl font-bold text-gray-900">50k+</span>
+             <span className="text-gray-500 font-medium">Laporan Dibuat</span>
+           </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="py-24 px-4 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">Fitur Unggulan</h2>
+            <p className="text-gray-600">Didesain khusus untuk kebutuhan guru masa kini.</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: <Layout className="w-8 h-8 text-purple-600" />,
+                title: "Dashboard Interaktif",
+                desc: "Visualisasi data real-time dengan grafik yang mudah dipahami untuk memantau progres siswa setiap hari."
+              },
+              {
+                icon: <FileText className="w-8 h-8 text-blue-600" />,
+                title: "Laporan Otomatis",
+                desc: "Cetak laporan harian, bulanan, hingga semester dalam format Excel atau PDF hanya dengan satu klik."
+              },
+              {
+                icon: <Users className="w-8 h-8 text-green-600" />,
+                title: "Manajemen Terintegrasi",
+                desc: "Kelola data siswa dan guru pendamping dengan sistem yang aman dan terisolasi antar sekolah."
+              },
+              {
+                icon: <Zap className="w-8 h-8 text-yellow-600" />,
+                title: "Input Cepat (Shared Form)",
+                desc: "Bagikan link pengisian form kepada siswa melalui WhatsApp tanpa mewajibkan siswa untuk login."
+              },
+              {
+                icon: <ShieldCheck className="w-8 h-8 text-red-600" />,
+                title: "Keamanan Data",
+                desc: "Data tersimpan aman di infrastruktur Google Cloud (Firebase) dengan otorisasi domain berlapis."
+              }
+            ].map((feature, i) => (
+              <div key={i} className="p-8 rounded-3xl border border-gray-100 bg-gray-50 hover:border-purple-200 transition-all hover:bg-white hover:shadow-xl group">
+                <div className="mb-6 bg-white w-16 h-16 rounded-2xl shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+                  {feature.icon}
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-4">{feature.title}</h3>
+                <p className="text-gray-600 leading-relaxed">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-24 px-4 bg-white text-center">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-4xl font-bold text-gray-900 mb-6">Siap Memulai Perubahan?</h2>
+          <p className="text-gray-600 mb-10 text-lg">Gunakan SIMO-G7KAIH hari ini. Pastikan Anda telah memiliki lisensi aktif untuk mengakses fitur penuh.</p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a 
+              href="http://lynk.id/bugurulela" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-10 py-4 rounded-2xl font-bold text-xl shadow-xl shadow-indigo-200 transition-all transform hover:scale-105"
+            >
+              Beli Lisensi
+            </a>
+            <button 
+              onClick={() => setCurrentPage('login')}
+              className="w-full sm:w-auto bg-gray-100 hover:bg-gray-200 text-gray-800 px-10 py-4 rounded-2xl font-bold text-xl transition-all"
+            >
+              Member Login
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-12 bg-gray-900 text-white text-center px-4">
+        <div className="flex items-center justify-center gap-2 mb-6">
+          <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center font-bold">S</div>
+          <span className="text-xl font-bold">SIMO-G7KAIH</span>
+        </div>
+        <p className="text-gray-400 text-sm mb-8">Dibuat dengan ❤️ untuk Pendidikan Indonesia oleh Bu Guru Lela</p>
+        <div className="flex justify-center gap-6 mb-8 text-gray-400">
+          <Mail className="w-5 h-5 cursor-pointer hover:text-white transition-colors" />
+          <Info className="w-5 h-5 cursor-pointer hover:text-white transition-colors" />
+        </div>
+        <div className="text-gray-500 text-xs">
+          &copy; {new Date().getFullYear()} SIMO-G7KAIH. Hak Cipta Dilindungi.
+        </div>
+      </footer>
+    </div>
+  );
+
+  const renderLoginPage = () => (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center p-4 font-sans">
+      <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full relative overflow-hidden">
+        <button 
+          onClick={() => setCurrentPage('landing')}
+          className="absolute top-4 left-4 text-gray-400 hover:text-purple-600 p-2 rounded-full hover:bg-gray-50 transition-all"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        
+        <div className="text-center mt-4">
+          <div className="w-16 h-16 bg-purple-100 text-purple-700 rounded-2xl flex items-center justify-center text-3xl font-bold mx-auto mb-4">S</div>
+          <h1 className="text-3xl font-bold text-purple-700 mb-2">Member Login</h1>
+          <p className="text-gray-500 mb-8 font-medium italic">Khusus Pengguna Lisensi Resmi SIMO-G7KAIH</p>
+          
+          <div className="space-y-4">
+            <button 
+              onClick={signInWithGoogle}
+              className="w-full py-4 border-2 border-gray-100 rounded-2xl flex items-center justify-center gap-3 font-bold text-gray-700 hover:border-blue-400 hover:bg-blue-50 transition-all group"
+            >
+              <svg className="w-6 h-6" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+              </svg>
+              Masuk dengan Google
+            </button>
+
+            <button 
+              onClick={signInWithGithub}
+              className="w-full py-4 border-2 border-gray-100 rounded-2xl flex items-center justify-center gap-3 font-bold text-gray-700 hover:border-gray-800 hover:bg-gray-50 transition-all group"
+            >
+              <svg className="w-6 h-6" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+              </svg>
+              Masuk dengan GitHub
+            </button>
+          </div>
+          
+          <div className="relative my-8">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-100"></div></div>
+            <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-gray-400">Atau coba sekarang</span></div>
+          </div>
+          
+          <button 
+            onClick={handleEnterDemo}
+            className="w-full py-4 bg-purple-50 text-purple-700 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-purple-100 transition-all border border-purple-100"
+          >
+            <PlayCircle className="w-5 h-5" /> Masuk Akun Demo
+          </button>
+          
+          <p className="mt-8 text-xs text-gray-400">
+            Dengan masuk, Anda menyetujui Ketentuan Layanan dan Kebijakan Privasi kami.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
   useEffect(() => {
     const testConnection = async () => {
       addLog("Testing Firebase connection...");
@@ -241,6 +518,8 @@ function AppContent() {
 
     const unsubscribeAuth = auth.onAuthStateChanged(async (user) => {
       addLog(`Auth state changed: ${user ? user.email : "No user"}`);
+      if (isDemo) return; // Don't let real auth override demo mode if active
+      
       try {
         if (user) {
           setIsFirebaseAuthenticated(true);
@@ -250,6 +529,7 @@ function AppContent() {
             addLog("Shared mode: skipping approval check");
             setCheckingApproval(false);
           } else {
+            setCurrentPage('home'); // Go to home if logged in
             if (userEmail === OWNER_EMAIL) {
               addLog("Owner detected");
               setIsOwner(true);
@@ -663,20 +943,32 @@ function AppContent() {
     XLSX.writeFile(wb, "Template_Data_Siswa.xlsx");
   };
 
+  const handleLogout = () => {
+    setIsDemo(false);
+    auth.signOut();
+    setCurrentPage('landing');
+  };
+
   const renderHomePage = () => (
-    <div className="bg-white rounded-3xl shadow-2xl p-8">
+    <div className="bg-white rounded-3xl shadow-2xl p-8 relative overflow-hidden">
+      {isDemo && (
+        <div className="bg-yellow-400 text-yellow-900 text-[10px] font-bold py-1 px-12 absolute top-4 -right-10 rotate-45 shadow-sm z-10">
+          DEMO MODE
+        </div>
+      )}
       <div className="flex justify-between items-center mb-4">
-        <div className="text-sm font-bold text-gray-500 bg-gray-100 px-4 py-2 rounded-xl">
-          🏫 {schoolEmail}
+        <div className="text-sm font-bold text-gray-500 bg-gray-100 px-4 py-2 rounded-xl flex items-center gap-2">
+          {isDemo ? <ShieldCheck className="w-4 h-4 text-yellow-600" /> : <ShieldCheck className="w-4 h-4 text-green-600" />}
+          {isDemo ? "Akun Demo Terbatas" : schoolEmail}
         </div>
         <div className="flex gap-2">
           {isAuthenticated && (
-            <button onClick={() => setIsAuthenticated(false)} className="bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-xl font-bold text-sm">
-              🔒 Kunci Mode Guru
+            <button onClick={() => setIsAuthenticated(false)} className="bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-xl font-bold text-sm flex items-center gap-2">
+              <Lock className="w-4 h-4" /> Kunci Mode Guru
             </button>
           )}
-          <button onClick={() => auth.signOut()} className="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-xl font-bold text-sm">
-            🚪 Keluar Akun
+          <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-xl font-bold text-sm flex items-center gap-2 transition-all">
+            <LogOut className="w-4 h-4" /> {isDemo ? "Keluar Demo" : "Keluar Akun"}
           </button>
         </div>
       </div>
@@ -1470,6 +1762,14 @@ function AppContent() {
     </div>
   );
 
+  if (currentPage === 'landing' && !isSharedMode && !isFirebaseAuthenticated) {
+    return renderLandingPage();
+  }
+
+  if (currentPage === 'login' && !isSharedMode && !isFirebaseAuthenticated) {
+    return renderLoginPage();
+  }
+
   if (checkingApproval && !isSharedMode) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center p-4 font-sans text-white">
@@ -1489,51 +1789,45 @@ function AppContent() {
   }
 
   if (!isFirebaseAuthenticated && !isSharedMode) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center p-4 font-sans">
-        <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center">
-          <h1 className="text-4xl font-bold text-purple-700 mb-4">SIMO-G7KAIH</h1>
-          <p className="text-xl text-gray-600 mb-8">Silakan masuk untuk melanjutkan</p>
-          <button 
-            onClick={signInWithGoogle}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-4 rounded-xl text-xl font-bold shadow-lg flex items-center justify-center gap-2"
-          >
-            <svg className="w-6 h-6" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-              <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-              <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-              <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-            </svg>
-            Masuk dengan Google
-          </button>
-          <div className="my-4 text-gray-400">atau</div>
-          <button 
-            onClick={signInWithGithub}
-            className="w-full bg-gray-800 hover:bg-gray-900 text-white py-4 rounded-xl text-xl font-bold shadow-lg flex items-center justify-center gap-2"
-          >
-            <svg className="w-6 h-6" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
-            </svg>
-            Masuk dengan GitHub
-          </button>
-        </div>
-      </div>
-    );
+    return renderLandingPage();
   }
 
   if (!isSharedMode && !isApproved && !isOwner) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center p-4 font-sans">
-        <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center">
-          <h1 className="text-4xl font-bold text-red-600 mb-4">Akses Ditolak</h1>
-          <p className="text-xl text-gray-600 mb-8">Akun email Anda (<b>{auth.currentUser?.email}</b>) belum disetujui oleh pemilik aplikasi.</p>
-          <p className="text-md text-gray-500 mb-8">Silakan hubungi admin untuk meminta akses.</p>
-          <button 
-            onClick={() => auth.signOut()}
-            className="w-full bg-red-500 hover:bg-red-600 text-white py-4 rounded-xl text-xl font-bold shadow-lg"
-          >
-            Keluar
-          </button>
+        <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center border-4 border-red-50">
+          <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+            <Lock className="w-10 h-10" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4 tracking-tight">Lisensi Tidak Aktif</h1>
+          <p className="text-lg text-gray-600 mb-6 leading-relaxed">
+            Akun <b>{auth.currentUser?.email}</b> tidak terdaftar dalam sistem lisensi <b>SIMO-G7KAIH</b>.
+          </p>
+          
+          <div className="bg-gray-50 p-6 rounded-2xl mb-8 border border-gray-100 italic text-sm text-gray-500">
+            "Akses dashboard hanya tersedia untuk sekolah dan guru yang telah melakukan aktivasi lisensi resmi."
+          </div>
+
+          <div className="space-y-4">
+            <a 
+              href="http://lynk.id/bugurulela" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl text-lg font-bold shadow-xl shadow-indigo-100 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2"
+            >
+              <CreditCard className="w-5 h-5" /> Beli Lisensi Sekarang
+            </a>
+            <button 
+              onClick={() => auth.signOut()}
+              className="w-full bg-white border-2 border-red-200 text-red-600 hover:bg-red-50 py-4 rounded-xl text-lg font-bold transition-all flex items-center justify-center gap-2"
+            >
+              <LogOut className="w-5 h-5" /> Keluar Akun
+            </button>
+          </div>
+          
+          <p className="mt-8 text-xs text-gray-400">
+            Sudah membeli tapi belum bisa masuk? Hubungi admin via WhatsApp.
+          </p>
         </div>
       </div>
     );
@@ -1542,6 +1836,21 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 p-4 font-sans">
       <div className="max-w-6xl mx-auto">
+        {/* App Bar / Back Button for Sub-pages */}
+        {!isSharedMode && currentPage !== 'home' && (
+          <div className="flex justify-between items-center mb-6 print:hidden">
+            <button 
+              onClick={() => setCurrentPage('home')}
+              className="flex items-center gap-2 text-white hover:text-purple-100 font-bold bg-white/20 backdrop-blur-md px-5 py-2.5 rounded-2xl transition-all border border-white/20 shadow-lg"
+            >
+              <ChevronLeft className="w-5 h-5" /> Kembali ke Beranda
+            </button>
+            <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl text-xs font-bold text-white border border-white/20">
+              {currentPage.toUpperCase().replace('-', ' ')} {isDemo && "(DEMO)"}
+            </div>
+          </div>
+        )}
+
         {currentPage === 'home' && renderHomePage()}
         {currentPage === 'form' && renderFormPage()}
         {currentPage === 'student-management' && renderStudentManagementPage()}
